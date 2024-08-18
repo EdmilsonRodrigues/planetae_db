@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "planetae_db"
+version = "0.1.0"
+description = "A python package to integrate the main relationals databases and MongoDB asynchronously in an unified syntax."
+authors = [
+    {name = "Edmilson Monteiro Rodrigues Neto", email = "edmilson.rodriguesn38@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = ["database", "db", "asynchronous", "mongodb", "mariadb", "mysql", "sqlite3", "postgressql", "mssql"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Database"
+]
+dependencies = [
+    "mysql-connector-python",
+    "mariadb",
+    "motor",
+    "planetae_logger"
+]
+
+[project.urls]
+repository = "https://github.com/EdmilsonRodrigues/planetae_db"
+
+[tool.hatch.build.targets.sdist.include]
+patterns = ["src/**/*"]
