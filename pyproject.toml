@@ -22,7 +22,7 @@ dependencies = [
     "mysql-connector-python",
     "mariadb",
     "motor",
-    "planetae_logger"
+    "planetae_logger>=0.3.0"
 ]
 
 [project.urls]

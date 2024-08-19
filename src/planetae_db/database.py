@@ -1,4 +1,5 @@
 from typing import Any, Generator
+from planetae_logger import Logger
 
 
 class Database:
@@ -7,7 +8,7 @@ class Database:
         self.db = None
 
     @staticmethod
-    def get_items_from_signature(
+    def _get_items_from_signature(
         signature: dict,
     ) -> Generator[tuple[str, str], None, None]:
         for key, value in signature.items():
