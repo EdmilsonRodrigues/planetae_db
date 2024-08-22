@@ -67,8 +67,11 @@ class SQLClient(Client):
     cursor: Any
     connection : Any
 
+    async def _execute(self, query: str, values: tuple | None = None, log: Any = None) -> bool:
+        return self.cursor.execute(query)
+
     async def create_database(self, name: str) -> bool:
-        self.cursor.execute(
+        return await self._execute(
             f"CREATE DATABASE {name} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
         )
 
@@ -84,11 +87,12 @@ class SQLClient(Client):
         return Database(**self._get_credentials(), name=name)
 
     async def get_databases(self) -> AsyncGenerator[Database, None]:
-        databases_names =
+        query = f"SHOW DATABASES;"
+
 
     async def delete_database(self, name: str) -> bool:
         query = f"DROP DATABASE {name};"
-        return await self.cursor.execute(query)
+        return self.cursor.execute(query)
 
 
 class MariaDBClient(SQLClient):
