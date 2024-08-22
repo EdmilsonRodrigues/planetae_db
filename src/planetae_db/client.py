@@ -3,7 +3,7 @@ import asyncio
 from database import Database
 import mariadb
 import mysql
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Coroutine
 from planetae_logger import Logger
 
 
@@ -12,7 +12,7 @@ class Client(ABC):
     connection: Any
     host: str | None = None
     port: int | None = None
-    _databases: AsyncGenerator[Database, None] | None = None
+    _databases: AsyncGenerator[Database | None, None] | None = None
     username: str | None = None
     password: str | None = None
     connection_string: str | None = None
@@ -39,7 +39,7 @@ class Client(ABC):
             self._logger = Logger("Client", log_file=logger_file)
 
     async def __aiter__(self):
-        self._databases = await self.get_databases()
+        self._databases = self.get_databases()
         async for database in self._databases:
             yield database
 
@@ -48,11 +48,15 @@ class Client(ABC):
         pass
 
     @abstractmethod
-    async def get_databases(self) -> AsyncGenerator[Database, None]:
+    async def get_databases(self) -> AsyncGenerator[Database | None, None]:
+        yield
+
+    @abstractmethod
+    async def get_databases_names(self) -> tuple:
         pass
 
     @abstractmethod
-    async def get_database(self, name: str) -> Database:
+    async def get_database(self, name: str) -> Database | None:
         pass
 
     @abstractmethod
@@ -65,17 +69,26 @@ class Client(ABC):
 
 class SQLClient(Client):
     cursor: Any
-    connection : Any
+    connection: Any
 
     async def _execute(self, query: str, values: tuple | None = None, log: Any = None) -> bool:
-        return self.cursor.execute(query)
+        if log and self._logger:
+            self._logger.info(log)
+        try:
+            if values:
+                self.cursor.execute(query, values)
+            return self.cursor.execute(query)
+        except Exception as e:
+            if self._logger:
+                self._logger.debug(str(e))
+            raise
 
     async def create_database(self, name: str) -> bool:
         return await self._execute(
             f"CREATE DATABASE {name} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
         )
 
-    def _get_credentials(self) -> dict[str, str]:
+    def _get_credentials(self) -> dict[str, str | int | None]:
         return {
             "username": self.username,
             "password": self.password,
@@ -83,12 +96,25 @@ class SQLClient(Client):
             "port": self.port,
         }
 
-    async def get_database(self, name: str) -> Database:
+    async def get_database(self, name: str) -> Database | None:
+        dbs = await self.get_databases_names()
+        if name not in dbs:
+            return None
         return Database(**self._get_credentials(), name=name)
 
-    async def get_databases(self) -> AsyncGenerator[Database, None]:
-        query = f"SHOW DATABASES;"
+    async def get_databases(self) -> AsyncGenerator[Database | None, None]:
+        databases = await self.get_databases_names()
+        for database in databases:
+            yield await self.get_database(database)
 
+    async def get_databases_names(self) -> tuple:
+        query = "SHOW DATABASES;"
+        get = await self._execute(
+            query=query, log="Fetched all the tables of database."
+        )
+        if not get:
+            return tuple()
+        return self.cursor.fetchone()
 
     async def delete_database(self, name: str) -> bool:
         query = f"DROP DATABASE {name};"
@@ -129,5 +155,55 @@ class NoSQLClient(Client):
     pass
 
 
-class MongoDBClient(Client):
-    pass
+class MongoDBClient(NoSQLClient):
+    cursor: Any
+    connection: Any
+
+    async def _execute(self, query: str, values: tuple | None = None, log: Any = None) -> bool:
+        if log and self._logger:
+            self._logger.info(log)
+        try:
+            if values:
+                self.cursor.execute(query, values)
+            return self.cursor.execute(query)
+        except Exception as e:
+            if self._logger:
+                self._logger.debug(str(e))
+            raise
+
+    async def create_database(self, name: str) -> bool:
+        return await self._execute(
+            f"CREATE DATABASE {name} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        )
+
+    def _get_credentials(self) -> dict[str, str | int | None]:
+        return {
+            "username": self.username,
+            "password": self.password,
+            "host": self.host,
+            "port": self.port,
+        }
+
+    async def get_database(self, name: str) -> Database | None:
+        dbs = await self.get_databases_names()
+        if name not in dbs:
+            return None
+        return Database(**self._get_credentials(), name=name)
+
+    async def get_databases(self) -> AsyncGenerator[Database | None, None]:
+        databases = await self.get_databases_names()
+        for database in databases:
+            yield await self.get_database(database)
+
+    async def get_databases_names(self) -> tuple:
+        query = "SHOW DATABASES;"
+        get = await self._execute(
+            query=query, log="Fetched all the tables of database."
+        )
+        if not get:
+            return tuple()
+        return self.cursor.fetchone()
+
+    async def delete_database(self, name: str) -> bool:
+        query = f"DROP DATABASE {name};"
+        return self.cursor.execute(query)
