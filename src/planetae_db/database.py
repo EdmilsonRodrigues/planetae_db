@@ -47,10 +47,14 @@ class Database:
     async def remove_column_from_table(self, table_name: str, key: str) -> bool:
         return self.not_implemented()
 
-    async def change_signature_from_column(self, table_name: str, signature: dict) -> bool:
+    async def change_signature_from_column(
+        self, table_name: str, signature: dict
+    ) -> bool:
         return self.not_implemented()
 
-    async def rename_column(self, table_name: str, old_name: str, signature: dict) -> bool:
+    async def rename_column(
+        self, table_name: str, old_name: str, signature: dict
+    ) -> bool:
         return self.not_implemented()
 
     async def rename_table(self, old_table_name: str, new_table_name: str) -> bool:
@@ -67,7 +71,9 @@ class Database:
     ) -> bool | tuple[str, tuple]:
         return self.not_implemented()
 
-    async def update_document(self, table_name: str, query: dict[str, Any], changes: dict[str, Any]) -> bool:
+    async def update_document(
+        self, table_name: str, query: dict[str, Any], changes: dict[str, Any]
+    ) -> bool:
         return self.not_implemented()
 
     async def delete_document(self, table_name: str, query: dict[str, Any]) -> bool:
@@ -76,7 +82,9 @@ class Database:
     async def create_index(self, table_name: str, key: str) -> bool:
         return self.not_implemented()
 
-    async def get_document(self, table_name: str, query: dict[str, Any]) -> dict[str, Any] | None:
+    async def get_document(
+        self, table_name: str, query: dict[str, Any]
+    ) -> dict[str, Any] | None:
         return self.not_implemented(None)
 
     async def get_documents(self, table_name: str, query: dict[str, Any]) -> list[dict[str, Any]]:  # type: ignore
@@ -85,7 +93,9 @@ class Database:
     async def get_all_documents(self, table_name: str) -> list[dict[str, Any]]:
         return self.not_implemented([])
 
-    async def backup_database(self, path: str, structure_only: bool = False, data_only: bool = False) -> bool:
+    async def backup_database(
+        self, path: str, structure_only: bool = False, data_only: bool = False
+    ) -> bool:
         return self.not_implemented()
 
     async def restore_backup(self, path: str) -> bool:
@@ -129,9 +139,13 @@ class SQLDatabase(Database):
 
     @classmethod
     def _get_lines_of_items(cls, signature: dict) -> Generator[str, None, None]:
-        return cls._get_string_of_items_separated_by_comma(generator=cls.get_items_from_signature)(signature=signature)
+        return cls._get_string_of_items_separated_by_comma(
+            generator=cls.get_items_from_signature
+        )(signature=signature)
 
-    async def _execute(self, query: str, string: str, values: tuple | None = None) -> bool:
+    async def _execute(
+        self, query: str, string: str, values: tuple | None = None
+    ) -> bool:
         try:
             print(query)
             if values is None:
@@ -148,12 +162,16 @@ class SQLDatabase(Database):
 
     async def get_all_tables(self) -> tuple[str]:
         query = "SHOW TABLES;"
-        get = await self._execute(query=query, string="Fetched all the tables of database.")
+        get = await self._execute(
+            query=query, string="Fetched all the tables of database."
+        )
         if not get:
             src.logger.log_exception(ValueError)
         return self.cursor.fetchone()
 
-    async def create_table(self, table_name: str, signature: dict[str, str], force: bool = False) -> bool:
+    async def create_table(
+        self, table_name: str, signature: dict[str, str], force: bool = False
+    ) -> bool:
         """
         Creates a table in a SQL Database.
 
@@ -179,7 +197,9 @@ class SQLDatabase(Database):
 
     async def get_table_description(self, table_name: str) -> dict[str, str]:
         query = f"DESCRIBE {table_name};"
-        ex = await self._execute(query, string=f"Fetched description of table {table_name}.")
+        ex = await self._execute(
+            query, string=f"Fetched description of table {table_name}."
+        )
         if not ex:
             src.logger.log_exception(NotImplementedError)
         result = self.cursor.fetchall()
@@ -204,33 +224,52 @@ class SQLDatabase(Database):
         if default:
             df += f" DEFAULT {default}"
         query = "ALTER TABLE " + table_name + " ADD COLUMN " + sig + af + fi + df + ";"
-        return await self._execute(query=query, string=f"Column {sig} added to table {table_name}" + af + fi)
+        return await self._execute(
+            query=query, string=f"Column {sig} added to table {table_name}" + af + fi
+        )
 
     async def add_primary_key(self, table_name: str, key: str) -> bool:
         query = "ALTER TABLE " + table_name + f" ADD PRIMARY KEY ({key});"
-        return await self._execute(query=query, string=f"Added primary key {key} to table {table_name}.")
+        return await self._execute(
+            query=query, string=f"Added primary key {key} to table {table_name}."
+        )
 
     async def remove_column_from_table(self, table_name: str, key: str) -> bool:
         query = "ALTER TABLE " + table_name + " DROP COLUMN " + key + ";"
-        return await self._execute(query=query, string=f"column {key} dropped from the table.")
+        return await self._execute(
+            query=query, string=f"column {key} dropped from the table."
+        )
 
-    async def change_signature_from_column(self, table_name: str, signature: dict) -> bool:
+    async def change_signature_from_column(
+        self, table_name: str, signature: dict
+    ) -> bool:
         line = next(self._get_lines_of_items(signature=signature)).replace(",", ";")
         query = "ALTER TABLE " + table_name + " MODIFY " + line
-        return await self._execute(query=query, string=f"Column changed its signature:\nNew signature: {line}")
+        return await self._execute(
+            query=query, string=f"Column changed its signature:\nNew signature: {line}"
+        )
 
-    async def rename_column(self, table_name: str, old_name: str, signature: dict) -> bool:
+    async def rename_column(
+        self, table_name: str, old_name: str, signature: dict
+    ) -> bool:
         line = next(self._get_lines_of_items(signature=signature)).replace(",", ";")
         query = "ALTER TABLE " + table_name + " CHANGE " + old_name + " " + line
-        return await self._execute(query=query, string=f"Name of column changed from {old_name} to {line.split()[0]}")
+        return await self._execute(
+            query=query,
+            string=f"Name of column changed from {old_name} to {line.split()[0]}",
+        )
 
     async def rename_table(self, old_table_name: str, new_table_name: str) -> bool:
         query = "ALTER TABLE " + old_table_name + " RENAME TO " + new_table_name + ";"
-        return await self._execute(query=query, string=f"Rename table {old_table_name} to {new_table_name}")
+        return await self._execute(
+            query=query, string=f"Rename table {old_table_name} to {new_table_name}"
+        )
 
     async def delete_table(self, table_name: str) -> bool:
         query = f"DROP TABLE IF EXISTS {table_name};"
-        return await self._execute(query=query, string=f"Dropped table {table_name} if table existed.")
+        return await self._execute(
+            query=query, string=f"Dropped table {table_name} if table existed."
+        )
 
     async def truncate_table(self, table_name: str) -> bool:
         query = f"TRUNCATE {table_name};"
@@ -245,7 +284,11 @@ class SQLDatabase(Database):
         query = f"INSERT INTO {table_name} {keys} VALUES {placeholders};"
         if return_query:
             return query, values
-        return await self._execute(query=query, values=values, string=f"Inserted {values} in table {table_name}.")
+        return await self._execute(
+            query=query,
+            values=values,
+            string=f"Inserted {values} in table {table_name}.",
+        )
 
     @staticmethod
     def _get_string_with_placeholders_from_iterable(iterable: Iterable) -> str:
@@ -269,23 +312,37 @@ class SQLDatabase(Database):
         return query
 
     async def update_document(
-        self, table_name: str, query: dict[str, Any], changes: dict[str, Any], limit: int | None = None
+        self,
+        table_name: str,
+        query: dict[str, Any],
+        changes: dict[str, Any],
+        limit: int | None = None,
     ) -> bool:
         queries = self._gen_placeholder_query_or_set_string(query=query)
         sets = self._gen_placeholder_query_or_set_string(query=changes)
         print(queries)
         print(sets)
-        replacing_tuple = self._get_values_tuple_from_dict(changes) + self._get_values_tuple_from_dict(query)
+        replacing_tuple = self._get_values_tuple_from_dict(
+            changes
+        ) + self._get_values_tuple_from_dict(query)
         q = f"UPDATE {table_name} SET {sets} WHERE {queries};"
         q = self._add_limit(q, limit)
-        return await self._execute(query=q, string=f"Updated table {table_name} with: {q}.", values=replacing_tuple)
+        return await self._execute(
+            query=q,
+            string=f"Updated table {table_name} with: {q}.",
+            values=replacing_tuple,
+        )
 
-    async def delete_document(self, table_name: str, query: dict[str, Any], limit: int | None = None) -> Any:
+    async def delete_document(
+        self, table_name: str, query: dict[str, Any], limit: int | None = None
+    ) -> Any:
         queries = self._gen_placeholder_query_or_set_string(query=query)
         queries_tuple = self._get_values_tuple_from_dict(query)
         q = f"DELETE FROM {table_name} WHERE {queries};"
         q = self._add_limit(q, limit=limit)
-        return await self._execute(query=q, string=f"Deleted documents where {queries}", values=queries_tuple)
+        return await self._execute(
+            query=q, string=f"Deleted documents where {queries}", values=queries_tuple
+        )
 
     async def create_index(self, table_name: str, key: str) -> Any:
         src.logger.log_exception(NotImplementedError)
@@ -305,13 +362,17 @@ class SQLDatabase(Database):
     def _get_values_tuple_from_dict(document: dict) -> tuple:
         return tuple(document.values())
 
-    async def get_document(self, table_name: str, query: dict[str, Any]) -> dict[str, Any] | None:
+    async def get_document(
+        self, table_name: str, query: dict[str, Any]
+    ) -> dict[str, Any] | None:
         queries = self._gen_placeholder_query_or_set_string(query=query)
         queries_values = self._get_values_tuple_from_dict(document=query)
         q = f"SELECT * FROM {table_name} WHERE {queries};"
         keys = await self._get_keys(table_name=table_name)
         ex = await self._execute(
-            query=q, string=f"Fetched one document that matches {queries}, {queries_values}", values=queries_values
+            query=q,
+            string=f"Fetched one document that matches {queries}, {queries_values}",
+            values=queries_values,
         )
         if not ex:
             src.logger.log_exception(ValueError)
@@ -320,7 +381,9 @@ class SQLDatabase(Database):
             return results
         return self._convert_tuple_to_dict(line=results, keys=keys)
 
-    async def get_documents(self, table_name: str, query: dict[str, Any]) -> list[dict[str, Any]]:
+    async def get_documents(
+        self, table_name: str, query: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         queries = self._gen_placeholder_query_or_set_string(query=query)
         queries_values = self._get_values_tuple_from_dict(document=query)
         q = f"SELECT * FROM {table_name} WHERE {queries};"
@@ -335,7 +398,9 @@ class SQLDatabase(Database):
         if results is None:
             return []
         return [
-            self._convert_tuple_to_dict(line=result, keys=await self._get_keys(table_name=table_name))
+            self._convert_tuple_to_dict(
+                line=result, keys=await self._get_keys(table_name=table_name)
+            )
             for result in results
         ]
 
@@ -344,43 +409,61 @@ class SQLDatabase(Database):
 
     async def get_all_documents(self, table_name: str) -> list[dict[str, Any]]:
         query = f"SELECT * FROM {table_name};"
-        ex = await self._execute(query=query, string=f"Fetched all documents from table {table_name}")
+        ex = await self._execute(
+            query=query, string=f"Fetched all documents from table {table_name}"
+        )
         if not ex:
             src.logger.log_exception(ValueError)
         results = self.cursor.fetchall()
         if results is None:
             return []
         return [
-            self._convert_tuple_to_dict(line=result, keys=await self._get_keys(table_name=table_name))
+            self._convert_tuple_to_dict(
+                line=result, keys=await self._get_keys(table_name=table_name)
+            )
             for result in results
         ]
 
     async def _get_table_creation_command(self, table_name: str) -> str:
         query = f"SHOW CREATE TABLE {table_name};"
-        ex = await self._execute(query=query, string=f"Got the commands to create table {table_name}")
+        ex = await self._execute(
+            query=query, string=f"Got the commands to create table {table_name}"
+        )
         if not ex:
             src.logger.log_exception(ValueError)
         return self.cursor.fetchone()[1] + ";"
 
     async def _get_database_creation_command(self) -> str:
         query = "SHOW CREATE DATABASE planetae;"
-        ex = await self._execute(query=query, string="Got the commands to create database")
+        ex = await self._execute(
+            query=query, string="Got the commands to create database"
+        )
         if not ex:
             src.logger.log_exception(ValueError)
         return self.cursor.fetchone()[1] + ";"
 
-    async def backup_database(self, path: str, structure_only: bool = False, data_only: bool = False) -> bool:
+    async def backup_database(
+        self, path: str, structure_only: bool = False, data_only: bool = False
+    ) -> bool:
         src.logger.log_string("Starting backup.")
         async with asyncio.TaskGroup() as tg:
             try:
                 all_tables = await self.get_all_tables()
                 src.logger.log_string("Fetching tables")
                 tables_tasks = [
-                    (tg.create_task(self.get_all_documents(table_name=table_name)), table_name)
+                    (
+                        tg.create_task(self.get_all_documents(table_name=table_name)),
+                        table_name,
+                    )
                     for table_name in all_tables
                 ]
-                create_database_task = tg.create_task(self._get_database_creation_command())
-                create_tables_tasks = [tg.create_task(self._get_table_creation_command(table)) for table in all_tables]
+                create_database_task = tg.create_task(
+                    self._get_database_creation_command()
+                )
+                create_tables_tasks = [
+                    tg.create_task(self._get_table_creation_command(table))
+                    for table in all_tables
+                ]
                 src.logger.log_string("Fetching documments")
 
             except Exception as e:
@@ -401,9 +484,13 @@ class SQLDatabase(Database):
         if not structure_only:
             for table in tables_tasks:
                 for document in table[0].result():
-                    query = await self.insert_document(table_name=table[1], document=document, return_query=True)
+                    query = await self.insert_document(
+                        table_name=table[1], document=document, return_query=True
+                    )
                     if isinstance(query, bool):
-                        src.logger.log_exception("Return query is not properly implemented")
+                        src.logger.log_exception(
+                            "Return query is not properly implemented"
+                        )
                         raise
                     query = query[0] + "\n" + str(query[1])
                     backup += query
@@ -426,10 +513,6 @@ class SQLDatabase(Database):
                     await self._execute(query=query, string="Restoring tables")
         return True
 
-    async def delete_database(self) -> bool:
-        query = "DROP DATABASE planetae;"
-        return await self._execute(query=query, string="Deleted the database")
-
 
 class MariaDB(SQLDatabase):
     async def initialize(self) -> "MariaDB | None":
@@ -447,28 +530,6 @@ class MariaDB(SQLDatabase):
             return self
         except mariadb.Error as e:
             src.logger.log_exception(CouldNotConnectWithDatabaseException(str(e)))
-
-    @staticmethod
-    async def _create_database():
-        conn = mariadb.connect(
-            user=DATABASE_USERNAME,
-            password=DATABASE_PASSWORD,
-            host=DATABASE_HOST,
-            port=DATABASE_PORT,
-        )
-        cursor = conn.cursor()
-        cursor.execute("CREATE DATABASE planetae DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
-        cursor.close()
-        conn.close()
-
-    async def _connect_with_database(self):
-        self.db: mariadb.Connection = mariadb.connect(
-            user=DATABASE_USERNAME,
-            password=DATABASE_PASSWORD,
-            host=DATABASE_HOST,
-            port=DATABASE_PORT,
-            database=DATABASE,
-        )
 
 
 class NoSQLDatabase(Database):

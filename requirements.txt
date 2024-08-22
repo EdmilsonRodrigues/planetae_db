@@ -1,0 +1,4 @@
+mysql-connector-python
+mariadb
+motor
+planetae_logger==0.3.0
