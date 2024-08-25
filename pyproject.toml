@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Database"
 ]
 dependencies = [
-    "mysql-connector-python>=9.0.0",
+    "aiomysql>=0.2.0",
     "mariadb>=1.1.10",
     "motor>=3.5.1",
     "planetae_logger>=0.3.0"
@@ -31,10 +31,23 @@ repository = "https://github.com/EdmilsonRodrigues/planetae_db"
 [tool.hatch.build.targets.sdist.include]
 patterns = ["src/**/*"]
 
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "mariadb: runs only the tests related to the mariadb database. (Use the one you have installed)",
+    "mysql: runs only the tests related to the mysql database. (Use the one you have installed)",
+    "postgresql: runs only the tests related to the postgressql database. (Use the one you have installed)",
+    "mssql: runs only the tests related to the mssql database. (Use the one you have installed)",
+    "sqlite3: runs only the tests related to the sqlite3 database. (Use the one you have installed)",
+    "mongodb: runs only the tests related to the mongodb database. (Use the one you have installed)"
+]
+
 [tool.black]
 line-length = 120
 
 [tool.flake8]
 max-line-length = 120
+exclude = ["__init__.py"]
+
 
 

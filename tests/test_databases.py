@@ -1,3 +1,5 @@
+"""
+
 import os
 import pytest
 from src.session import MariaDB
@@ -49,9 +51,7 @@ async def test_get_no_tables():
 async def test_create_table(initial_signature):
     global name
     name = "test"
-    assert await db.create_table(
-        table_name=name, signature=initial_signature, force=True
-    )
+    assert await db.create_table(table_name=name, signature=initial_signature, force=True)
 
 
 @pytest.mark.asyncio()
@@ -62,32 +62,24 @@ async def test_get_tables():
 @pytest.mark.asyncio()
 async def test_get_test_table_description(initial_signature):
     global initial_description
-    initial_description = {
-        key: value.split(")")[0] + ")" for key, value in initial_signature.items()
-    }
+    initial_description = {key: value.split(")")[0] + ")" for key, value in initial_signature.items()}
     initial_description.update({"id": "int(11)"})
     assert await db.get_table_description(name) == initial_description
 
 
 @pytest.mark.asyncio()
 async def test_add_column_to_table(new_collumns_signatures):
-    assert await db.add_column_to_table(
-        table_name=name, signature=new_collumns_signatures[0]
-    )
+    assert await db.add_column_to_table(table_name=name, signature=new_collumns_signatures[0])
 
 
 @pytest.mark.asyncio()
 async def test_change_column_signature(new_collumns_signatures):
-    assert await db.change_signature_from_column(
-        table_name=name, signature=new_collumns_signatures[1]
-    )
+    assert await db.change_signature_from_column(table_name=name, signature=new_collumns_signatures[1])
 
 
 @pytest.mark.asyncio()
 async def test_change_column_completely(new_collumns_signatures):
-    assert await db.rename_column(
-        table_name=name, old_name="profession", signature=new_collumns_signatures[2]
-    )
+    assert await db.rename_column(table_name=name, old_name="profession", signature=new_collumns_signatures[2])
 
 
 @pytest.mark.asyncio()
@@ -97,9 +89,7 @@ async def test_delete_new_column():
 
 @pytest.mark.asyncio()
 async def test_create_first_documment(documents_to_be_inserted):
-    assert await db.insert_document(
-        table_name=name, document=documents_to_be_inserted[0]
-    )
+    assert await db.insert_document(table_name=name, document=documents_to_be_inserted[0])
 
 
 @pytest.mark.asyncio()
@@ -135,9 +125,7 @@ async def test_delete_primary_key():
 
 @pytest.mark.asyncio()
 async def test_get_test_table_description_without_id(initial_signature):
-    initial_description = {
-        key: value.split(")")[0] + ")" for key, value in initial_signature.items()
-    }
+    initial_description = {key: value.split(")")[0] + ")" for key, value in initial_signature.items()}
     assert await db.get_table_description(name) == initial_description
 
 
@@ -165,9 +153,7 @@ async def test_delete_mariadb_table():
 
 @pytest.mark.asyncio()
 async def test_restore_backup(initial_signature, backup_file_path):
-    initial_description = {
-        key: value.split(")")[0] + ")" for key, value in initial_signature.items()
-    }
+    initial_description = {key: value.split(")")[0] + ")" for key, value in initial_signature.items()}
     assert await db.restore_backup(path=backup_file_path)
     assert await db.get_table_description(name) == initial_description
     assert await db.delete_table(table_name=name)
@@ -176,3 +162,6 @@ async def test_restore_backup(initial_signature, backup_file_path):
 @pytest.mark.asyncio()
 async def test_delete_database():
     assert await db.delete_database()
+
+    
+"""

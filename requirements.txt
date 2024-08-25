@@ -1,4 +1,4 @@
-mysql-connector-python==9.0.0
+aiomysql==0.2.0
 mariadb==1.1.10
 motor==3.5.1
 planetae_logger==0.3.0
