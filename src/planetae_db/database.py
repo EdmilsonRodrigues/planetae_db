@@ -504,5 +504,11 @@ class MariaDBDatabase(SQLDatabase):
         self.cursor = self.connection.cursor()
 
 
+
+class MySQLDatabase(MariaDBDatabase):
+    pass
+
+
+
 class NoSQLDatabase(Database):
     pass

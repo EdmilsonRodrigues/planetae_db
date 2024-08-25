@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import asyncio
 import mysql.connector
 import aiomysql
+import pymysql
 from src.planetae_db.database import Database
 import mariadb
 from typing import Any, AsyncGenerator
@@ -96,20 +97,28 @@ class Client(ABC):
 
         return getattr(import_module("src.planetae_db.database"), get_database_class_name(cls=cls))
 
-    def close(self):
+    async def close(self):
+        if self.connection is None:
+            return True
         self.connection.close()
+        self.connection = None
+        return True
 
 
 class SQLClient(Client):
     cursor: Any
     connection: Any
+    _sync_cursor: Any
 
+    @abstractmethod
     async def _execute(self, query: str, values: tuple | None = None, log: Any = None) -> bool:
         return self._execute_sync(query, values, log)
 
+    @abstractmethod
     async def _fetchone(self, query: str, values: tuple | None = None, log: Any = None) -> tuple:
         pass
 
+    @abstractmethod
     async def _fetchall(self, query: str, values: tuple | None = None, log: Any = None) -> list[tuple]:
         pass
 
@@ -118,8 +127,8 @@ class SQLClient(Client):
             self._logger.info(log)
         try:
             if values:
-                self.cursor.execute(query, values)
-            self.cursor.execute(query)
+                self._sync_cursor.execute(query, values)
+            self._sync_cursor.execute(query)
             return True
         except Exception as e:
             if self._logger:
@@ -132,7 +141,10 @@ class SQLClient(Client):
             return database(**self._get_credentials(), name=item)
         except Exception:
             if self.automatically_create_database:
-                self.cursor.execute(f"CREATE DATABASE {item} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+                self._execute_sync(
+                    f"CREATE DATABASE {item} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;",
+                    log="Created database.",
+                )
                 return self[item]
             raise
 
@@ -141,7 +153,7 @@ class SQLClient(Client):
             return await self._execute(
                 f"CREATE DATABASE {name} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
             )
-        except mariadb.ProgrammingError as e:
+        except pymysql.ProgrammingError as e:
             if exist_ok:
                 if self._logger:
                     self._logger.info(f"Database {name} already exists.")
@@ -160,7 +172,7 @@ class SQLClient(Client):
         try:
             database = self._get_database_class()
             return database(**self._get_credentials(), name=name)
-        except Exception:
+        except mariadb.ProgrammingError:
             if self.automatically_create_database:
                 await self.create_database(name)
                 return await self.get_database(name)
@@ -173,10 +185,7 @@ class SQLClient(Client):
 
     async def get_databases_names(self) -> set:
         query = "SHOW DATABASES;"
-        get = await self._execute(query=query, log="Fetched all the tables of database.")
-        if not get:
-            return set()
-        return set(tup[0] for tup in self.cursor.fetchall())
+        return set(tup[0] for tup in await self._fetchall(query=query, log="Fetched all the tables of database."))
 
     async def delete_database(self, name: str) -> bool:
         query = f"DROP DATABASE {name};"
@@ -199,15 +208,24 @@ class MariaDBClient(SQLClient):
         )
         self._sync_cursor = self._sync_connection.cursor()
 
+    async def _create_connection(self) -> aiomysql.Connection:
+        if self.connection is not None:
+            return self.connection
+        assert (
+            self.username is not None
+            and self.password is not None
+            and self.host is not None
+            and self.port is not None
+        )
+        return await aiomysql.connect(
+            user=self.username,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+        )
+
     async def _execute(self, query: str, values: tuple | None = None, log: Any = None) -> bool:
-        if self.connection is None:
-            assert self.username is not None and self.password is not None and self.host is not None and self.port is not None
-            self.connection = await aiomysql.connect(
-                user=self.username,
-                password=self.password,
-                host=self.host,
-                port=self.port,
-            )
+        self.connection = await self._create_connection()
         if log and self._logger:
             self._logger.info(log)
         try:
@@ -221,19 +239,45 @@ class MariaDBClient(SQLClient):
             if self._logger:
                 self._logger.debug(str(e))
             raise
-        
-    def _execute_sync(self, query: str, values: tuple | None = None, log: Any = None) -> bool:
+
+    async def _fetchone(self, query: str, values: tuple | None = None, log: Any = None) -> tuple:
+        self.connection = await self._create_connection()
         if log and self._logger:
             self._logger.info(log)
         try:
-            if values:
-                self._sync_cursor.execute(query, values)
-            self._sync_cursor.execute(query)
-            return True
+            async with self.connection.cursor() as cursor:
+                if values:
+                    await cursor.execute(query, values)
+                else:
+                    await cursor.execute(query)
+                return await cursor.fetchone()
         except Exception as e:
             if self._logger:
                 self._logger.debug(str(e))
             raise
+
+    async def _fetchall(self, query: str, values: tuple | None = None, log: Any = None) -> list[tuple]:
+        self.connection = await self._create_connection()
+        if log and self._logger:
+            self._logger.info(log)
+        try:
+            async with self.connection.cursor() as cursor:
+                if values:
+                    await cursor.execute(query, values)
+                else:
+                    await cursor.execute(query)
+                return await cursor.fetchall()
+        except Exception as e:
+            if self._logger:
+                self._logger.debug(str(e))
+            raise
+
+    async def close(self):
+        if self.connection is None:
+            return True
+        await self.connection.ensure_closed()
+        self.connection = None  # type: ignore
+        return True
 
 
 class MySQLClient(MariaDBClient):

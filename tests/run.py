@@ -21,7 +21,6 @@ def test():
     else:
         include_markers = ""
 
-
     print(include_markers)
 
     print(["pytest", "tests", "-vvvv" + stop, "--cov", "--durations=5", include_markers])
